@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# write-iso.sh
+# Safely write an ISO file to a removable disk.
+#
+# Usage:
+#   sudo ./write-iso.sh <path-to.iso> <device>
+#
+# Example:
+#   sudo ./write-iso.sh ubuntu-24.04-custom.iso /dev/sdb
+
+set -euo pipefail
+
+########################################
+# Validate arguments
+########################################
+
+if [ "$#" -ne 2 ]; then
+    echo "Usage: sudo $0 <iso-file> <device>"
+    echo "Example: sudo $0 ubuntu.iso /dev/sdb"
+    exit 1
+fi
+
+ISO="$1"
+DEVICE="$2"
+
+########################################
+# Validate ISO file
+########################################
+
+if [ ! -f "${ISO}" ]; then
+    echo "Error: ISO not found: ${ISO}"
+    exit 1
+fi
+
+########################################
+# Validate device
+########################################
+
+if [ ! -b "${DEVICE}" ]; then
+    echo "Error: Device not found: ${DEVICE}"
+    exit 1
+fi
+
+# Detect root device to avoid accidental overwrite
+ROOT_DEVICE="$(lsblk -no pkname "$(findmnt -n -o SOURCE /)")"
+ROOT_DEVICE="/dev/${ROOT_DEVICE}"
+
+if [ "${DEVICE}" = "${ROOT_DEVICE}" ]; then
+    echo "Error: Refusing to write to system root disk: ${DEVICE}"
+    exit 1
+fi
+
+echo "ISO:    ${ISO}"
+echo "Device: ${DEVICE}"
+echo
+
+########################################
+# Warning + confirmation
+########################################
+
+echo "WARNING: All data on ${DEVICE} will be destroyed."
+read -r -p "Continue? [y/N]: " ANSWER
+
+case "${ANSWER}" in
+    [Yy]* ) ;;
+    * )
+        echo "Aborted."
+        exit 1
+        ;;
+esac
+
+########################################
+# Unmount partitions on target disk
+########################################
+
+echo
+echo "Unmounting all partitions on ${DEVICE} ..."
+for part in $(lsblk -ln -o NAME "${DEVICE}" | tail -n +2); do
+    if mount | grep -q "/dev/${part}"; then
+        umount "/dev/${part}" || true
+    fi
+done
+
+########################################
+# Write ISO using dd
+########################################
+
+echo
+echo "Writing ISO to disk..."
+echo "This may take several minutes."
+
+dd \
+    if="${ISO}" \
+    of="${DEVICE}" \
+    bs=16M \
+    conv=fsync,notrunc \
+    status=progress
+
+sync
+
+########################################
+# Show final disk layout
+########################################
+
+echo
+echo "Write complete. Disk layout:"
+lsblk \
+    -o NAME,SIZE,FSTYPE,MOUNTPOINT \
+    "${DEVICE}"
+
+echo
+echo "ISO successfully written to ${DEVICE}."

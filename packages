@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+# Export all installed package names, one per line
+dpkg-query -W -f='${binary:Package}\n'

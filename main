@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set \
+    -euo \
+    pipefail
+
+git rev-parse \
+    --is-inside-work-tree \
+    >/dev/null
+
+git branch \
+    -D \
+    main-squashed \
+    2>/dev/null \
+    || true
+
+git checkout \
+    --orphan \
+    main-squashed
+
+git add \
+    -A
+
+git commit \
+    -m \
+    "rebase"
+
+git branch \
+    -D \
+    main \
+    2>/dev/null \
+    || true
+
+git branch \
+    -m \
+    main
+
+git push \
+    -u \
+    origin \
+    main \
+    --force-with-lease

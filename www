@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+base="${HOME}/www"
+subdir="${1:-}"
+
+if [ -z "$subdir" ]; then
+  cd -- "$base"
+  ls -al
+else
+  target="${base}/${subdir}"
+  if [ ! -d "$target" ]; then
+    echo "Directory not found: $target" >&2
+    exit 1
+  fi
+  cd -- "$target"
+  git status
+fi
+
+exec "${SHELL:-/bin/bash}" -i
