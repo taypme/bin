@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+rsync \
+    -a \
+    --delete \
+    --exclude=/lost+found/ \
+    --exclude=.git/ \
+    --prune-empty-dirs \
+    --whole-file \
+    --info=progress2 \
+    --human-readable \
+    /home/t/tsync/ \
+    /media/t/TSYNC/

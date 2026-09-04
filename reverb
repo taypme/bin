@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: reverb
+
+Stage all changes, pull the tracked branch from GitHub with rebase semantics,
+restore the local changes, amend the pulled tip commit without changing its
+message, and push the rewritten commit back to the tracked remote branch.
+EOF
+}
+
+if [[ "${1:-}" =~ ^(-h|--help|help)$ ]]; then
+  usage
+  exit 0
+fi
+
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  echo "Not inside a git repository." >&2
+  exit 1
+fi
+
+upstream_ref="$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null || true)"
+if [[ -z "${upstream_ref}" ]]; then
+  echo "Current branch does not have a tracked upstream branch." >&2
+  exit 1
+fi
+
+branch_name="$(git symbolic-ref --quiet --short HEAD 2>/dev/null || true)"
+if [[ -z "${branch_name}" ]]; then
+  echo "Detached HEAD is not supported." >&2
+  exit 1
+fi
+
+stash_created=0
+stash_name="reverb: ${branch_name} $(date +%s)"
+
+cleanup() {
+  if [[ "${stash_created}" -eq 1 ]]; then
+    echo "Restoring stashed changes failed automatically." >&2
+    echo "Recover them with: git stash list | grep '${stash_name}'" >&2
+  fi
+}
+
+trap cleanup EXIT
+
+git add .
+
+if ! git diff --cached --quiet || ! git diff --quiet || [[ -n "$(git ls-files --others --exclude-standard)" ]]; then
+  git stash push --include-untracked --message "${stash_name}" >/dev/null
+  stash_created=1
+fi
+
+git pull --rebase
+
+if [[ "${stash_created}" -eq 1 ]]; then
+  git stash pop --index >/dev/null
+  stash_created=0
+fi
+
+git add .
+
+if git diff --cached --quiet; then
+  echo "No local changes to apply after pulling ${upstream_ref}." >&2
+  exit 0
+fi
+
+git commit --amend --no-edit
+git push --force-with-lease
+
+trap - EXIT

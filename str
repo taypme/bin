@@ -66,10 +66,13 @@ def collect_renames(root: Path, find: str, replace: str):
             if dest == src:
                 continue
             renames.append((src, dest))
-    return renames
+    # Rename children before parents. Otherwise a directory rename can make a
+    # later child source path stale, which raises FileNotFoundError mid-run.
+    return sorted(renames, key=lambda item: len(item[0].parts), reverse=True)
 
 
 def ensure_no_collisions(renames) -> None:
+    sources = {src for src, _ in renames}
     dest_seen = {}
     collisions = []
     for src, dest in renames:
@@ -77,7 +80,7 @@ def ensure_no_collisions(renames) -> None:
             collisions.append((src, dest, dest_seen[dest]))
         dest_seen[dest] = src
 
-        if dest.exists() and dest != src:
+        if dest.exists() and dest not in sources:
             collisions.append((src, dest, "existing"))
 
     if collisions:

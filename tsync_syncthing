@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+SOURCE="${HOME}/tsync/"
+DESTINATION="${HOME}/syncthing/"
+
+mkdir -p "${DESTINATION}"
+
+exec rsync \
+    -a \
+    --delete \
+    --delete-excluded \
+    --exclude='.git/' \
+    --exclude='node_modules/' \
+    --exclude='vendor/' \
+    --exclude='.stfolder/' \
+    --filter='protect /.stfolder/' \
+    --prune-empty-dirs \
+    --whole-file \
+    --info=progress2 \
+    --human-readable \
+    "${SOURCE}" \
+    "${DESTINATION}"

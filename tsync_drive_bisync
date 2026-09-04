@@ -1,0 +1,7 @@
+#!/bin/bash
+
+rclone bisync \
+  /home/t/tsync/drive \
+  googledrive: \
+  --drive-skip-gdocs \
+  --resync
