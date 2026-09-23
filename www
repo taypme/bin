@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-base="${HOME}/tsync/www"
+base="${HOME}/data/www"
 subdir="${1:-}"
 
 if [ -z "$subdir" ]; then
