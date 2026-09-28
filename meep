@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-base="/www"
+base="/meep"
 subdir="${1:-}"
 
 if [ -z "$subdir" ]; then
@@ -14,7 +14,6 @@ else
     exit 1
   fi
   cd -- "$target"
-  git -c color.ui=auto status
 fi
 
 exec "${SHELL:-/bin/bash}" -i

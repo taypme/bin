@@ -1,6 +1,0 @@
-#!/bin/bash
-
-rclone copy \
-	googledrive: \
-	/home/t/tsync/drive \
-	--progress
